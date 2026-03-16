@@ -95,12 +95,12 @@ Para obter uma cópia local funcionando, siga estes passos simples.
 
 1. Clone o repositório:
     ```sh
-    git clone https://github.com/seu-usuario/barberboss-api.git
+    git clone https://github.com/matheusdamacena593/barberboss-api.git
     ```
 
 2. Acesse a pasta do projeto:
     ```sh
-    cd BarberBoss
+    cd barberboss-api
     ```
 
 3. Configure a string de conexão no arquivo `src/BarberBoss.Api/appsettings.Development.json`:
