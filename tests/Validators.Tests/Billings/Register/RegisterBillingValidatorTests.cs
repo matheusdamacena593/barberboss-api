@@ -1,4 +1,6 @@
 using BarberBoss.Application.UseCases.Billings;
+using BarberBoss.Communication.Enums;
+using BarberBoss.Exception;
 using CommonTestUtilities.Requests;
 using FluentAssertions;
 
@@ -7,11 +9,25 @@ namespace Validators.Tests.Billings.Register
     public class RegisterBillingValidatorTests
     {
         [Fact]
-        public void Success()
+        public void Success_Status_Pago()
         {
             // Arrange
             var validator = new BillingValidator();
             var request = RequestRegisterBillingsJsonBuilder.Build();
+
+            // Act
+            var result = validator.Validate(request);
+
+            // Assert
+            result.IsValid.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Success_Status_Cancelado()
+        {
+            // Arrange
+            var validator = new BillingValidator();
+            var request = RequestRegisterBillingsJsonBuilder.Build(Status.Cancelado);
 
             // Act
             var result = validator.Validate(request);

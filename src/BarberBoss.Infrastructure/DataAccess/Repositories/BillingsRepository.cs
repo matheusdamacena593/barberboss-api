@@ -1,5 +1,6 @@
 using BarberBoss.Domain.DTOs;
 using BarberBoss.Domain.Entities;
+using BarberBoss.Domain.Entities.Billing;
 using BarberBoss.Domain.Repositories.Billings;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,29 +22,22 @@ namespace BarberBoss.Infrastructure.DataAccess.Repositories
                 .AddAsync(billing);
         }
 
-        public async Task<bool> Delete(Guid id)
+        public async Task Delete(long id)
         {
             var result = await _dbContext
                 .Billings
-                .FirstOrDefaultAsync(billing => billing.Id == id);
-
-            if (result is null)
-            {
-                return false;
-            }
+                .FindAsync(id);
 
             _dbContext
                 .Billings
                 .Remove(result);
-
-            return true;
         }
 
-        public async Task<PageResultDTO<Billing>> GetAll(int page, int pageSize)
+        public async Task<PageResultDTO<Billing>> GetAll(int page, int pageSize, User user)
         {
             pageSize = Math.Min(pageSize, 50);
             
-            var baseQuery = _dbContext.Billings.AsNoTracking();
+            var baseQuery = _dbContext.Billings.AsNoTracking().Where(expense => expense.UserId == user.Id);
 
             var totalItems = await baseQuery.CountAsync();
 
@@ -63,19 +57,19 @@ namespace BarberBoss.Infrastructure.DataAccess.Repositories
             };
         }
 
-        async Task<Billing?> IBillingsReadOnlyRepository.GetById(Guid id)
+        async Task<Billing?> IBillingsReadOnlyRepository.GetById(long id, User user)
         {
             return await _dbContext
                 .Billings
                 .AsNoTracking()
-                .FirstOrDefaultAsync(billing => billing.Id == id);
+                .FirstOrDefaultAsync(billing => billing.Id == id && billing.UserId == user.Id);
         }
 
-        async Task<Billing?> IBillingsUpdateOnlyRepository.GetById(Guid id)
+        async Task<Billing?> IBillingsUpdateOnlyRepository.GetById(long id, User user)
         {
             return await _dbContext
                .Billings
-               .FirstOrDefaultAsync(billing => billing.Id == id);
+               .FirstOrDefaultAsync(billing => billing.Id == id && billing.UserId == user.Id);
         }
 
         public void Update(Billing billing)
@@ -85,7 +79,7 @@ namespace BarberBoss.Infrastructure.DataAccess.Repositories
                 .Update(billing);
         }
 
-        public async Task<List<Billing>> FilterByWeek(DateOnly date)
+        public async Task<List<Billing>> FilterByWeek(DateOnly date, User user)
         {
             var dayOfWeek = date.DayOfWeek;
 
@@ -100,7 +94,7 @@ namespace BarberBoss.Infrastructure.DataAccess.Repositories
             return await _dbContext
                 .Billings
                 .AsNoTracking()
-                .Where(billing => billing.Date >= startDate && billing.Date <= endDate)
+                .Where(billing => billing.Date >= startDate && billing.Date <= endDate && billing.UserId == user.Id)
                 .OrderBy(billing => billing.Date)
                 .ThenBy(billing => billing.ServiceName)
                 .ToListAsync();

@@ -6,12 +6,14 @@ using BarberBoss.Application.UseCases.Billings.Update;
 using BarberBoss.Communication.Requests;
 using BarberBoss.Communication.Responses;
 using BarberBoss.Domain.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BarberBoss.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class BillingsController : ControllerBase
     {
         [HttpPost]
@@ -48,7 +50,7 @@ namespace BarberBoss.Api.Controllers
         [ProducesResponseType(typeof(ResponseErrorsJson), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(
            [FromServices] IGetBillingByIdUseCase useCase,
-           [FromRoute] Guid id)
+           [FromRoute] long id)
         {
             var response = await useCase.Execute(id);
 
@@ -61,7 +63,7 @@ namespace BarberBoss.Api.Controllers
         [ProducesResponseType(typeof(ResponseErrorsJson), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(
             [FromServices] IDeleteBillingUseCase useCase,
-            [FromRoute] Guid id)
+            [FromRoute] long id)
         {
             await useCase.Execute(id);
 
@@ -75,7 +77,7 @@ namespace BarberBoss.Api.Controllers
         [ProducesResponseType(typeof(ResponseErrorsJson), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Update(
             [FromServices] IUpdateBillingUseCase useCase,
-            [FromRoute] Guid id,
+            [FromRoute] long id,
             [FromBody] RequestBillingJson request)
         {
             await useCase.Execute(id, request);

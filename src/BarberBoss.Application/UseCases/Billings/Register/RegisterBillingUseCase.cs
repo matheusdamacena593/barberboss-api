@@ -1,11 +1,11 @@
 using AutoMapper;
 using BarberBoss.Communication.Requests;
 using BarberBoss.Communication.Responses;
-using BarberBoss.Domain.Entities;
+using BarberBoss.Domain.Entities.Billing;
 using BarberBoss.Domain.Repositories;
 using BarberBoss.Domain.Repositories.Billings;
+using BarberBoss.Domain.Services.LoggedUser;
 using BarberBoss.Exception.ExceptionsBase;
-using PdfSharp.Drawing;
 
 namespace BarberBoss.Application.UseCases.Billings.Register
 {
@@ -14,28 +14,34 @@ namespace BarberBoss.Application.UseCases.Billings.Register
         private readonly IBillingsWriteOnlyRepository _repository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ILoggedUser _loggedUser;
 
         public RegisterBillingUseCase(
             IBillingsWriteOnlyRepository repository,
             IUnitOfWork unitOfWork,
-            IMapper mapper)
+            IMapper mapper,
+            ILoggedUser loggedUser)
         {
             _repository = repository;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _loggedUser = loggedUser;
         }
 
         public async Task<ResponseBillingJson> Execute(RequestBillingJson request)
         {
             await ValidateAsync(request);
 
-            var entity = _mapper.Map<Billing>(request);
+            var loggedUser = await _loggedUser.Get();
 
-            await _repository.Add(entity);
+            var billing = _mapper.Map<Billing>(request);
+            billing.UserId = loggedUser.Id;
+
+            await _repository.Add(billing);
 
             await _unitOfWork.Commit();
 
-            return _mapper.Map<ResponseBillingJson>(entity);
+            return _mapper.Map<ResponseBillingJson>(billing);
         }
 
         private async Task ValidateAsync(RequestBillingJson request)

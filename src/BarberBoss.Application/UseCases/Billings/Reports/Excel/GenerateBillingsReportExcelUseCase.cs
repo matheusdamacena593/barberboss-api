@@ -1,6 +1,7 @@
 using BarberBoss.Domain.Extensions;
 using BarberBoss.Domain.Reports;
 using BarberBoss.Domain.Repositories.Billings;
+using BarberBoss.Domain.Services.LoggedUser;
 using ClosedXML.Excel;
 
 namespace BarberBoss.Application.UseCases.Billings.Reports.Excel
@@ -9,15 +10,21 @@ namespace BarberBoss.Application.UseCases.Billings.Reports.Excel
     {
         private const string CURRENCY_SYMBOL = "R$";
         private readonly IBillingsReadOnlyRepository _repository;
+        private readonly ILoggedUser _loggedUser;
 
-        public GenerateBillingsReportExcelUseCase(IBillingsReadOnlyRepository repository)
+        public GenerateBillingsReportExcelUseCase(
+            IBillingsReadOnlyRepository repository,
+            ILoggedUser loggedUser)
         {
             _repository = repository;
+            _loggedUser = loggedUser;
         }
 
         public async Task<byte[]> Execute(DateOnly date)
         {
-            var expenses = await _repository.FilterByWeek(date);
+            var loggedUser = await _loggedUser.Get();
+
+            var expenses = await _repository.FilterByWeek(date, loggedUser);
 
             if (expenses.Count == 0)
             {
@@ -26,7 +33,7 @@ namespace BarberBoss.Application.UseCases.Billings.Reports.Excel
 
             using var workbook = new XLWorkbook();
 
-            workbook.Author = "Matheus Damacena";
+            workbook.Author = loggedUser.Name;
             workbook.Style.Font.FontSize = 12;
             workbook.Style.Font.FontName = "Times New Roman";
 

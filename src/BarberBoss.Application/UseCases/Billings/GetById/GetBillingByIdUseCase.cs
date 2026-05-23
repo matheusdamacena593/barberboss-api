@@ -1,6 +1,7 @@
 using AutoMapper;
 using BarberBoss.Communication.Responses;
 using BarberBoss.Domain.Repositories.Billings;
+using BarberBoss.Domain.Services.LoggedUser;
 using BarberBoss.Exception;
 using BarberBoss.Exception.ExceptionsBase;
 
@@ -10,17 +11,22 @@ namespace BarberBoss.Application.UseCases.Billings.GetById
     {
         private readonly IBillingsReadOnlyRepository _repository;
         private readonly IMapper _mapper;
+        private readonly ILoggedUser _loggedUser;
 
         public GetBillingByIdUseCase(
             IBillingsReadOnlyRepository repository,
-            IMapper mapper)
+            IMapper mapper,
+            ILoggedUser loggedUser)
         {
             _repository = repository;
             _mapper = mapper;
+            _loggedUser = loggedUser;
         }
-        public async Task<ResponseBillingJson> Execute(Guid id)
+        public async Task<ResponseBillingJson> Execute(long id)
         {
-            var result = await _repository.GetById(id);
+            var loggedUser = await _loggedUser.Get();
+
+            var result = await _repository.GetById(id, loggedUser);
 
             if (result is null)
             {

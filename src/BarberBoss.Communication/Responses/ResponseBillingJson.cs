@@ -4,7 +4,7 @@ namespace BarberBoss.Communication.Responses
 {
     public class ResponseBillingJson
     {
-        public Guid Id { get; set; }
+        public long Id { get; set; }
         public DateTime Date { get; set; }
         public string BarberName { get; set; } = string.Empty;
         public string ClientName { get; set; } = string.Empty;

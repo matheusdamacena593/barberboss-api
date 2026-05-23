@@ -3,6 +3,7 @@ using BarberBoss.Application.UseCases.Billings.Reports.Pdf.Fonts;
 using BarberBoss.Domain.Extensions;
 using BarberBoss.Domain.Reports;
 using BarberBoss.Domain.Repositories.Billings;
+using BarberBoss.Domain.Services.LoggedUser;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.Rendering;
@@ -15,28 +16,35 @@ namespace BarberBoss.Application.UseCases.Billings.Reports.Pdf
     {
         private const string CURRENCY_SYMBOL = "R$";
         private const int HEIGHT_ROW_BILLING_TABLE = 25;
+        
         private readonly IBillingsReadOnlyRepository _repository;
+        private readonly ILoggedUser _loggedUser;
 
-        public GenerateBillingsReportPdfUseCase(IBillingsReadOnlyRepository repository)
+        public GenerateBillingsReportPdfUseCase(
+            IBillingsReadOnlyRepository repository,
+            ILoggedUser loggedUser)
         {
             _repository = repository;
+            _loggedUser = loggedUser;
 
             GlobalFontSettings.FontResolver = new BillingsReportFontResolver();
         }
 
         public async Task<byte[]> Execute(DateOnly date)
         {
-            var billings = await _repository.FilterByWeek(date);
+            var loggedUser = await _loggedUser.Get();
+
+            var billings = await _repository.FilterByWeek(date, loggedUser);
 
             if (billings.Count == 0)
             {
                 return [];
             }
 
-            var document = CreateDocument(date);
+            var document = CreateDocument(loggedUser.Name, date);
             var page = CreatePage(document);
 
-            CreateHeaderWithProfilePhotoAndName(page);
+            CreateHeaderWithProfilePhotoAndName(loggedUser.Name, page);
 
             var totalBillings = billings.Sum(billing => billing.Amount);
             CreateTotalSpentSection(page, date, totalBillings);
@@ -83,11 +91,11 @@ namespace BarberBoss.Application.UseCases.Billings.Reports.Pdf
             return RenderDocument(document);
         }
 
-        private Document CreateDocument(DateOnly month)
+        private Document CreateDocument(string author, DateOnly month)
         {
             var document = new Document();
             document.Info.Title = $"{ResourceReportGenerationMessages.RECEITA_PARA} {month:Y}";
-            document.Info.Author = "Matheus Damacena";
+            document.Info.Author = author;
 
             var style = document.Styles["Normal"];
             style!.Font.Name = FontHelper.RALEWAY_REGULAR;
@@ -110,7 +118,7 @@ namespace BarberBoss.Application.UseCases.Billings.Reports.Pdf
             return section;
         }
 
-        private void CreateHeaderWithProfilePhotoAndName(Section page)
+        private void CreateHeaderWithProfilePhotoAndName(string name, Section page)
         {
             var table = page.AddTable();
             table.AddColumn();
@@ -125,7 +133,7 @@ namespace BarberBoss.Application.UseCases.Billings.Reports.Pdf
 
             row.Cells[0].AddImage(pathFile);
 
-            row.Cells[1].AddParagraph("Barbearia do Matheus");
+            row.Cells[1].AddParagraph($"Barbearia do {name}");
             row.Cells[1].Format.Font = new Font { Name = FontHelper.RALEWAY_BLACK, Size = 16 };
             row.Cells[1].VerticalAlignment = MigraDoc.DocumentObjectModel.Tables.VerticalAlignment.Center;
         }

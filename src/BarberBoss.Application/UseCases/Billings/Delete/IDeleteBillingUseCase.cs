@@ -2,6 +2,6 @@
 {
     public interface IDeleteBillingUseCase
     {
-        Task Execute(Guid id);
+        Task Execute(long id);
     }
 }

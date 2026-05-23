@@ -1,10 +1,10 @@
 using BarberBoss.Domain.Enums;
 
-namespace BarberBoss.Domain.Entities
+namespace BarberBoss.Domain.Entities.Billing
 {
     public class Billing
     {
-        public Guid Id { get; set; }
+        public long Id { get; set; }
         public DateTime Date { get; set; }
         public string BarberName { get; set; } = string.Empty;
         public string ClientName { get; set; } = string.Empty;
@@ -15,5 +15,7 @@ namespace BarberBoss.Domain.Entities
         public string Notes { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+        public long UserId { get; set; }
+        public User User { get; set; } = default!;
     }
 }
