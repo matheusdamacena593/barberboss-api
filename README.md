@@ -1,32 +1,46 @@
 ## Sobre o projeto
 
-Esta **API**, desenvolvida com **.NET 8**, foi estruturada com base nos princípios de **Domain-Driven Design (DDD)** para oferecer uma solução organizada e escalável no gerenciamento de **faturamentos de uma barbearia**. O objetivo principal do projeto é permitir o cadastro, consulta, atualização e remoção de faturamentos, registrando informações como barbeiro, cliente, serviço prestado, data e hora, valor, forma de pagamento, status e observações, com persistência em banco de dados **MySQL**.
+Esta **API**, desenvolvida com **.NET 8**, segue princípios de **Domain-Driven Design (DDD)** para oferecer uma solução organizada e escalável de gestão de faturamentos para barbearias.
 
-A aplicação segue o padrão **REST**, utilizando métodos **HTTP** convencionais para disponibilizar seus recursos de forma clara e padronizada. Além disso, conta com **Swagger** para documentação e testes interativos dos endpoints, facilitando o consumo da API durante o desenvolvimento e a integração com clientes externos.
+Além do CRUD de faturamentos, o projeto agora possui **autenticação completa com JWT**, incluindo cadastro de usuários, login, gerenciamento de perfil e proteção de rotas por autorização.
 
-A solução foi dividida em camadas independentes, separando responsabilidades entre **API**, **Application**, **Communication**, **Domain**, **Infrastructure** e **Exception**, o que torna o projeto mais limpo, testável e de fácil manutenção. Na camada de aplicação, o **AutoMapper** é utilizado para o mapeamento entre entidades e objetos de requisição/resposta. O **FluentValidation** centraliza as regras de validação de entrada para garantir a consistência dos dados. O **Entity Framework Core** com **Pomelo para MySQL** é responsável pelo acesso aos dados. Para a exportação de relatórios, o projeto utiliza **ClosedXML** para geração de arquivos **Excel** e **PDFsharp/MigraDoc** para a construção de relatórios em **PDF**.
+A arquitetura é dividida em camadas independentes:
 
-Atualmente, a API também oferece a **geração de relatórios semanais em PDF e Excel**, permitindo visualizar o faturamento do período de forma prática e organizada.
+- **API**
+- **Application**
+- **Communication**
+- **Domain**
+- **Infrastructure**
+- **Exception**
 
-### Features
+Também utiliza:
 
-- **Arquitetura em camadas com DDD**: separação clara entre domínio, regras de negócio, contratos, infraestrutura e API.
+- **Entity Framework Core** + **Pomelo MySQL** para persistência
+- **FluentValidation** para validações
+- **AutoMapper** para mapeamento
+- **Swagger** para documentação interativa
+- **ClosedXML** e **PDFsharp/MigraDoc** para relatórios
 
-- **CRUD de faturamentos**: cadastro, listagem paginada, consulta por identificador, atualização e remoção de registros.
+## Features
 
-- **Validação de dados com FluentValidation**: regras para campos obrigatórios, tamanhos mínimos e máximos, enums válidos e consistência de valor/status.
+- Arquitetura em camadas com DDD.
+- Autenticação com JWT (`Bearer Token`).
+- Cadastro de usuário com retorno de token.
+- Login com retorno de token.
+- Gestão de perfil do usuário autenticado:
+- `GET /api/User`
+- `PUT /api/User`
+- `PUT /api/User/change-password`
+- `DELETE /api/User`
+- CRUD de faturamentos protegido por autenticação.
+- **Faturamentos vinculados ao usuário logado** (isolamento por usuário).
+- Paginação na listagem de faturamentos.
+- Relatórios semanais em PDF e Excel.
+- Autorização por role para relatórios (`administrator`).
+- Tratamento global de exceções.
+- Testes automatizados unitários, de validação e integração/Web API.
 
-- **Paginação na listagem**: retorno estruturado com página atual, tamanho da página, total de itens e total de páginas.
-
-- **Geração de relatórios semanais**: exportação dos faturamentos do período em **PDF** e **Excel**.
-
-- **Documentação com Swagger**: interface interativa para explorar e testar os endpoints da API.
-
-- **Tratamento global de exceções**: filtro centralizado para padronização das respostas de erro da aplicação.
-
-- **Testes automatizados**: projeto de testes com **xUnit**, **FluentAssertions**, **Shouldly** e utilitários de geração de dados com **Bogus**.
-
-### Estrutura da solução
+## Estrutura da solução
 
 ```text
 BarberBoss
@@ -39,10 +53,12 @@ BarberBoss
  ┃ ┗ BarberBoss.Infrastructure
  ┗ tests
    ┣ CommonTestUtilities
-   ┗ Validators.Tests
+   ┣ UseCases.Tests
+   ┣ Validators.Tests
+   ┗ WebApi.Test
 ```
 
-### Construído com
+## Construído com
 
 ![badge-dot-net]
 ![badge-csharp]
@@ -54,87 +70,148 @@ BarberBoss
 
 ## Endpoints principais
 
-### Faturamentos
+### Autenticação e usuário
 
-- `POST /api/Billings` — cadastra um novo faturamento
-- `GET /api/Billings?page=1&pageSize=10` — lista faturamentos com paginação
-- `GET /api/Billings/{id}` — busca um faturamento por identificador
-- `PUT /api/Billings/{id}` — atualiza um faturamento existente
-- `DELETE /api/Billings/{id}` — remove um faturamento
+- `POST /api/User` - cadastro de usuário (retorna `name` e `token`).
+- `POST /api/Login` - login (retorna `name` e `token`).
+- `GET /api/User` - consulta perfil do usuário autenticado.
+- `PUT /api/User` - atualiza perfil do usuário autenticado.
+- `PUT /api/User/change-password` - altera senha.
+- `DELETE /api/User` - remove conta do usuário autenticado.
 
-### Relatórios
+### Faturamentos (rota protegida)
 
-- `GET /api/Report/pdf?date=2026-03-16` — gera relatório semanal em PDF a partir de uma data de referência
-- `GET /api/Report/excel` com header `date` — gera relatório semanal em Excel
+Todas as rotas de faturamento exigem token JWT.
+
+- `POST /api/Billings` - cadastra faturamento para o usuário logado.
+- `GET /api/Billings?page=1&pageSize=10` - lista faturamentos do usuário logado com paginação.
+- `GET /api/Billings/{id}` - busca faturamento do usuário logado por ID.
+- `PUT /api/Billings/{id}` - atualiza faturamento do usuário logado.
+- `DELETE /api/Billings/{id}` - remove faturamento do usuário logado.
+
+### Relatórios (rota protegida + role)
+
+As rotas de relatório exigem usuário autenticado com role `administrator`.
+
+- `GET /api/Report/pdf?date=2026-03-16` - gera relatório semanal em PDF.
+- `GET /api/Report/excel` com header `date` - gera relatório semanal em Excel.
 
 ## Regras de negócio observadas
 
-Algumas validações já implementadas na API:
+### Usuários e autenticação
 
-- **Data** obrigatória
-- **Nome do barbeiro** obrigatório, com mínimo de 2 e máximo de 80 caracteres
-- **Nome do cliente** obrigatório, com mínimo de 2 e máximo de 120 caracteres
-- **Nome do serviço** obrigatório, com mínimo de 2 e máximo de 120 caracteres
-- **Valor** deve ser maior ou igual a zero
-- Quando o status for **Cancelado**, o valor deve ser **0**
-- **Forma de pagamento** deve ser um valor válido do enum
-- **Status** deve ser um valor válido do enum
-- **Observações** podem ter no máximo 500 caracteres
+- Nome obrigatório no cadastro.
+- E-mail obrigatório e em formato válido.
+- E-mail único por usuário.
+- Senha obrigatória com regra de complexidade:
+- mínimo de 8 caracteres
+- ao menos 1 letra maiúscula
+- ao menos 1 letra minúscula
+- ao menos 1 número
+- ao menos 1 caractere especial entre `! ? * .`
+- Token JWT com claims de nome, identificador do usuário e role.
+
+### Faturamentos
+
+- Data obrigatória.
+- Nome do barbeiro obrigatório (2 a 80 caracteres).
+- Nome do cliente obrigatório (2 a 120 caracteres).
+- Nome do serviço obrigatório (2 a 120 caracteres).
+- Valor maior ou igual a zero.
+- Quando status for `Cancelado`, valor deve ser `0`.
+- Forma de pagamento deve ser válida no enum.
+- Status deve ser válido no enum.
+- Observações com máximo de 500 caracteres.
+- Operações de faturamento respeitam o usuário autenticado (não acessa dados de outro usuário).
 
 ## Getting Started
 
-Para obter uma cópia local funcionando, siga estes passos simples.
-
 ### Requisitos
 
-* **.NET SDK 8.0** instalado
-* **MySQL Server**
-* **Visual Studio 2022+** ou **Visual Studio Code**
+- **.NET SDK 8.0**
+- **MySQL Server**
+- **Visual Studio 2022+** ou **Visual Studio Code**
 
 ### Instalação
 
 1. Clone o repositório:
-    ```sh
-    git clone https://github.com/matheusdamacena593/barberboss-api.git
-    ```
+
+```sh
+git clone https://github.com/matheusdamacena593/barberboss-api.git
+```
 
 2. Acesse a pasta do projeto:
-    ```sh
-    cd barberboss-api
-    ```
 
-3. Configure a string de conexão no arquivo `src/BarberBoss.Api/appsettings.Development.json`:
-    ```json
-    {
-      "ConnectionStrings": {
-        "Connection": "Server=localhost;Database=barberboss_db;Uid=root;Pwd=123456;"
-      }
+```sh
+cd barberboss-api
+```
+
+3. Configure `ConnectionStrings` e `Settings:Jwt` em `src/BarberBoss.Api/appsettings.Development.json`:
+
+```json
+{
+  "ConnectionStrings": {
+    "Connection": "Server=localhost;Database=barberboss_db;Uid=root;Pwd=123456;"
+  },
+  "Settings": {
+    "Jwt": {
+      "SigningKey": "SUA_CHAVE_FORTE_AQUI",
+      "ExpiresMinutes": 1000
     }
-    ```
+  }
+}
+```
 
 4. Restaure os pacotes:
-    ```sh
-    dotnet restore
-    ```
+
+```sh
+dotnet restore
+```
 
 5. Execute a aplicação:
-    ```sh
-    dotnet run --project src/BarberBoss.Api
-    ```
 
-6. Acesse o Swagger no navegador para testar os endpoints.
+```sh
+dotnet run --project src/BarberBoss.Api
+```
+
+6. Abra o Swagger e autentique com `Bearer {token}`.
 
 ## Testes
 
-Para executar os testes automatizados do projeto:
+Para executar todos os testes:
 
 ```sh
 dotnet test
 ```
 
-Atualmente, a solução possui projeto de testes voltado para validação das regras de entrada dos faturamentos, além de utilitários compartilhados para geração de dados de teste.
+A solução possui testes para:
+
+- Use cases.
+- Validadores.
+- Endpoints da Web API (integração).
 
 ## Exemplo de payload
+
+### Cadastro de usuário
+
+```json
+{
+  "name": "Matheus Damacena",
+  "email": "matheus@email.com",
+  "password": "Senha@123"
+}
+```
+
+### Login
+
+```json
+{
+  "email": "matheus@email.com",
+  "password": "Senha@123"
+}
+```
+
+### Faturamento
 
 ```json
 {
@@ -149,15 +226,13 @@ Atualmente, a solução possui projeto de testes voltado para validação das re
 }
 ```
 
-## 👨‍💻 Autor
+## Autor
 
 Desenvolvido por **Matheus Damacena**
 
 [LinkedIn][linkedin]
 
 mateusdamacena593@gmail.com
-
-Sinta-se à vontade para entrar em contato para oportunidades, colaborações ou networking na área de desenvolvimento **.NET**, arquitetura de software e construção de APIs escaláveis.
 
 <!-- Links -->
 [dot-net-sdk]: https://dotnet.microsoft.com/en-us/download/dotnet/8.0
